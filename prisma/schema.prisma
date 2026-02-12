@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String   @default("Default User")
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exercises          Exercise[]
+  workoutTemplates   WorkoutTemplate[]
+  scheduledWorkouts  ScheduledWorkout[]
+  workoutSessions    WorkoutSession[]
+  enduranceActivities EnduranceActivity[]
+  stravaTokens       StravaToken[]
+}
+
+model Exercise {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  tags          String[] // push, pull, legs, core
+  equipment     String?
+  formCues      String?  // default form cues text
+  userNote      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateBlocks TemplateBlock[]
+  setLogs        SetLog[]
+  exerciseNotes  ExerciseNote[]
+
+  @@index([userId])
+}
+
+model WorkoutTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blocks            TemplateBlock[]
+  scheduledWorkouts ScheduledWorkout[]
+  workoutSessions   WorkoutSession[]
+
+  @@index([userId])
+}
+
+enum BlockMode {
+  REPS
+  TIMED
+  INTERVAL
+}
+
+model TemplateBlock {
+  id            String    @id @default(cuid())
+  templateId    String
+  exerciseId    String
+  order         Int
+  mode          BlockMode @default(REPS)
+  sets          Int       @default(3)
+  repMin        Int?      // for REPS mode
+  repMax        Int?      // for REPS mode
+  seconds       Int?      // for TIMED mode (e.g., plank 60s)
+  workSeconds   Int?      // for INTERVAL mode
+  restSeconds   Int?      // for INTERVAL mode
+  rounds        Int?      // for INTERVAL mode
+  targetRpe     Float?    // optional RPE target (1-10)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  template      WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  exercise      Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  setLogs       SetLog[]
+
+  @@index([templateId])
+  @@index([exerciseId])
+}
+
+enum ScheduledWorkoutStatus {
+  PLANNED
+  COMPLETED
+  SKIPPED
+}
+
+model ScheduledWorkout {
+  id         String                  @id @default(cuid())
+  userId     String
+  templateId String
+  date       DateTime                @db.Date
+  status     ScheduledWorkoutStatus  @default(PLANNED)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+
+  user       User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   WorkoutTemplate         @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  session    WorkoutSession?
+
+  @@index([userId, date])
+  @@index([templateId])
+}
+
+model WorkoutSession {
+  id                 String    @id @default(cuid())
+  userId             String
+  templateId         String?
+  scheduledWorkoutId String?   @unique
+  startedAt          DateTime  @default(now())
+  completedAt        DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template          WorkoutTemplate?   @relation(fields: [templateId], references: [id])
+  scheduledWorkout  ScheduledWorkout?  @relation(fields: [scheduledWorkoutId], references: [id])
+  setLogs           SetLog[]
+  exerciseNotes     ExerciseNote[]
+
+  @@index([userId])
+  @@index([templateId])
+}
+
+model SetLog {
+  id          String   @id @default(cuid())
+  sessionId   String
+  exerciseId  String
+  blockId     String?
+  setIndex    Int
+  weight      Float?
+  reps        Int?
+  seconds     Float?   // for timed holds / intervals
+  failure     Boolean  @default(false)
+  rpe         Float?   // optional RPE (1-10)
+  createdAt   DateTime @default(now())
+
+  session     WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise    Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  block       TemplateBlock? @relation(fields: [blockId], references: [id])
+
+  @@index([sessionId])
+  @@index([exerciseId])
+}
+
+model ExerciseNote {
+  id          String   @id @default(cuid())
+  exerciseId  String
+  sessionId   String?
+  note        String
+  createdAt   DateTime @default(now())
+
+  exercise    Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  session     WorkoutSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId])
+  @@index([sessionId])
+}
+
+model EnduranceActivity {
+  id           String    @id @default(cuid())
+  userId       String
+  source       String    @default("fit_upload") // fit_upload, strava, manual
+  startTime    DateTime
+  duration     Int       // seconds
+  distance     Float?    // meters
+  avgHr        Int?
+  avgPower     Int?
+  maxPower     Int?
+  avgCadence   Int?
+  title        String?
+  notes        String?
+  fileObjectId String?   @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileObject   FileObject? @relation(fields: [fileObjectId], references: [id])
+
+  @@index([userId])
+  @@index([startTime, duration])
+}
+
+model FileObject {
+  id           String   @id @default(cuid())
+  filename     String
+  mimeType     String
+  size         Int
+  storagePath  String   // local path for v1; TODO: abstract for S3/R2
+  createdAt    DateTime @default(now())
+
+  enduranceActivity EnduranceActivity?
+}
+
+// Model only for v1 - not implemented
+model StravaToken {
+  id           String   @id @default(cuid())
+  userId       String
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  scope        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
