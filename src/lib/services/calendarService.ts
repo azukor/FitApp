@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, ensureDefaultUser } from "@/lib/prisma";
 import { DEFAULT_USER_ID } from "@/lib/utils";
 
 export const calendarService = {
@@ -38,6 +38,7 @@ export const calendarService = {
 
   async scheduleWorkout(templateId: string, date: string) {
     // TODO: coachService.suggestSchedule() — AI schedule optimization
+    await ensureDefaultUser();
     return prisma.scheduledWorkout.create({
       data: {
         userId: DEFAULT_USER_ID,

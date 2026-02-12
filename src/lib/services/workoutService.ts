@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, ensureDefaultUser } from "@/lib/prisma";
 import { DEFAULT_USER_ID } from "@/lib/utils";
 import type { ExerciseFormData, WorkoutTemplateFormData, SetLogEntry } from "@/types";
 
@@ -20,6 +20,7 @@ export const workoutService = {
   },
 
   async createExercise(data: ExerciseFormData) {
+    await ensureDefaultUser();
     return prisma.exercise.create({
       data: { ...data, userId: DEFAULT_USER_ID },
     });
@@ -63,6 +64,7 @@ export const workoutService = {
   },
 
   async createTemplate(data: WorkoutTemplateFormData) {
+    await ensureDefaultUser();
     return prisma.workoutTemplate.create({
       data: {
         name: data.name,
@@ -135,6 +137,7 @@ export const workoutService = {
   // --- Sessions ---
   async startSession(templateId?: string, scheduledWorkoutId?: string) {
     // TODO: coachService.suggestWarmup(templateId) — AI warm-up suggestions
+    await ensureDefaultUser();
     return prisma.workoutSession.create({
       data: {
         userId: DEFAULT_USER_ID,

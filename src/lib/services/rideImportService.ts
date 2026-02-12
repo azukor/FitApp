@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, ensureDefaultUser } from "@/lib/prisma";
 import { DEFAULT_USER_ID } from "@/lib/utils";
 import type { RideSummary } from "@/types";
 import * as fs from "fs/promises";
@@ -13,7 +13,8 @@ interface StorageProvider {
 
 const localStorageProvider: StorageProvider = {
   async save(filename: string, buffer: Buffer): Promise<string> {
-    const uploadDir = path.join(process.cwd(), "uploads");
+    // Use /tmp on serverless (Vercel) since the app directory is read-only
+    const uploadDir = path.join("/tmp", "uploads");
     await fs.mkdir(uploadDir, { recursive: true });
     const filePath = path.join(uploadDir, `${Date.now()}-${filename}`);
     await fs.writeFile(filePath, buffer);
@@ -134,6 +135,7 @@ export const rideImportService = {
   storage: localStorageProvider as StorageProvider,
 
   async importFitFile(filename: string, fileBuffer: Buffer) {
+    await ensureDefaultUser();
     // Parse the .fit file
     const summary = parseFitFile(fileBuffer);
 
@@ -185,6 +187,7 @@ export const rideImportService = {
   },
 
   async forceImport(filename: string, fileBuffer: Buffer) {
+    await ensureDefaultUser();
     const summary = parseFitFile(fileBuffer);
     const storagePath = await rideImportService.storage.save(filename, fileBuffer);
 
