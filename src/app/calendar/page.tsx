@@ -25,7 +25,9 @@ import { cn } from "@/lib/utils";
 
 export default function CalendarPage() {
   const router = useRouter();
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  // Initialize weekStart as null to avoid hydration mismatch between
+  // server build time and client runtime (different timezones/dates)
+  const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,12 +38,22 @@ export default function CalendarPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [moveDate, setMoveDate] = useState("");
 
+  // Set the initial date on the client only to avoid hydration mismatch
+  useEffect(() => {
+    setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  }, []);
+
   const fetchWeek = useCallback(async () => {
+    if (!weekStart) return;
     setLoading(true);
-    const res = await fetch(`/api/calendar?startDate=${weekStart.toISOString()}`);
-    if (res.ok) {
-      const data = await res.json();
-      setWorkouts(data);
+    try {
+      const res = await fetch(`/api/calendar?startDate=${weekStart.toISOString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWorkouts(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // Network error — leave workouts as-is
     }
     setLoading(false);
   }, [weekStart]);
@@ -52,10 +64,25 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetch("/api/templates")
-      .then((r) => r.json())
-      .then((d) => setTemplates(d))
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch");
+        return r.json();
+      })
+      .then((d) => setTemplates(Array.isArray(d) ? d : []))
       .catch(() => {});
   }, []);
+
+  // Wait for client-side date initialization
+  if (!weekStart) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Calendar" description="Plan your training week" />
+        <div className="flex items-center justify-center py-12">
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
