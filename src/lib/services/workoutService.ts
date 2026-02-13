@@ -1,4 +1,4 @@
-import { prisma, ensureDefaultUser } from "@/lib/prisma";
+import { prisma, ensureDefaultUser, ensureSampleData } from "@/lib/prisma";
 import { DEFAULT_USER_ID } from "@/lib/utils";
 import type { ExerciseFormData, WorkoutTemplateFormData, SetLogEntry } from "@/types";
 
@@ -7,6 +7,7 @@ import type { ExerciseFormData, WorkoutTemplateFormData, SetLogEntry } from "@/t
 export const workoutService = {
   // --- Exercises ---
   async listExercises() {
+    await ensureSampleData();
     return prisma.exercise.findMany({
       where: { userId: DEFAULT_USER_ID },
       orderBy: { name: "asc" },
@@ -39,6 +40,7 @@ export const workoutService = {
 
   // --- Templates ---
   async listTemplates() {
+    await ensureSampleData();
     return prisma.workoutTemplate.findMany({
       where: { userId: DEFAULT_USER_ID },
       include: {
