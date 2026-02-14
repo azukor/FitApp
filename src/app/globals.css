@@ -1,38 +1,110 @@
 @import "tailwindcss";
 
+/* ───────────────────────────────────────────────
+   Design System Tokens (Tailwind v4 @theme)
+   ─────────────────────────────────────────────── */
 @theme {
-  --color-background: #fafafa;
-  --color-foreground: #0a0a0a;
-  --color-card: #ffffff;
-  --color-card-foreground: #0a0a0a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #0a0a0a;
-  --color-primary: #171717;
-  --color-primary-foreground: #fafafa;
-  --color-secondary: #f5f5f5;
-  --color-secondary-foreground: #171717;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #737373;
-  --color-accent: #f5f5f5;
-  --color-accent-foreground: #171717;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #fafafa;
-  --color-border: #e5e5e5;
-  --color-input: #e5e5e5;
-  --color-ring: #0a0a0a;
-  --radius: 0.625rem;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
+  /* Accent (Performance Blue) */
+  --color-accent-400: #60A5FA;
+  --color-accent-500: #3B82F6;
+  --color-accent-600: #2563EB;
+  --color-accent-700: #1D4ED8;
+
+  /* State colors */
+  --color-success: #22C55E;
+  --color-warning: #F97316;
+  --color-danger: #EF4444;
+
+  /* Radii */
+  --radius: 0.875rem;
+  --radius-card: 1rem;
+  --radius-button: 0.875rem;
+
+  /* Semantic tokens — resolved via CSS custom properties set on :root / [data-*] */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--card-bg);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--card-bg);
+  --color-popover-foreground: var(--fg);
+  --color-primary: var(--accent);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--fg);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--fg-secondary);
+  --color-accent: var(--secondary);
+  --color-accent-foreground: var(--fg);
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: var(--border-color);
+  --color-input: var(--border-color);
+  --color-ring: var(--theme-accent);
 }
 
+/* ───────────────────────────────────────────────
+   Light Mode (Default)
+   ─────────────────────────────────────────────── */
+:root {
+  --bg: #FFFFFF;
+  --surface: #F8FAFC;
+  --card-bg: #FFFFFF;
+  --border-color: #E5E7EB;
+  --fg: #0F172A;
+  --fg-secondary: #475569;
+  --accent: #2563EB;
+  --theme-accent: #2563EB;
+  --secondary: #F1F5F9;
+  --muted: #F1F5F9;
+  color-scheme: light;
+}
+
+/* ───────────────────────────────────────────────
+   Dark Mode
+   ─────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --card-bg: #1E293B;
+  --border-color: #334155;
+  --fg: #F8FAFC;
+  --fg-secondary: #94A3B8;
+  --accent: #3B82F6;
+  --theme-accent: #3B82F6;
+  --secondary: #1E293B;
+  --muted: #1E293B;
+  color-scheme: dark;
+}
+
+/* ───────────────────────────────────────────────
+   Workout Mode (dark, high-contrast)
+   ─────────────────────────────────────────────── */
+[data-mode="workout"] {
+  --bg: #0B1220;
+  --surface: #0F1B2D;
+  --card-bg: #101F35;
+  --border-color: #1E2A40;
+  --fg: #F8FAFC;
+  --fg-secondary: #CBD5E1;
+  --accent: #3B82F6;
+  --theme-accent: #3B82F6;
+  --secondary: #0F1B2D;
+  --muted: #0F1B2D;
+  color-scheme: dark;
+}
+
+/* ───────────────────────────────────────────────
+   Base layer
+   ─────────────────────────────────────────────── */
 @layer base {
   * {
-    border-color: var(--color-border);
+    border-color: var(--border-color);
   }
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--bg);
+    color: var(--fg);
     -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 

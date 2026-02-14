@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { WorkoutModeProvider } from "@/components/providers/workout-mode-provider";
 
 export const metadata: Metadata = {
   title: "FitApp - Workout & Cycling Tracker",
@@ -22,12 +24,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <main className="mx-auto max-w-2xl px-4 pt-4 pb-24">
-          {children}
-        </main>
-        <BottomNav />
+        <ThemeProvider>
+          <WorkoutModeProvider>
+            <main className="mx-auto max-w-2xl px-4 pt-4 pb-24">
+              {children}
+            </main>
+            <BottomNav />
+          </WorkoutModeProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

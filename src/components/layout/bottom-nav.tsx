@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Calendar,
-  Dumbbell,
   Bike,
   BarChart3,
   Sparkles,
@@ -43,12 +42,12 @@ export function BottomNav() {
               className={cn(
                 "flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors min-w-[3rem]",
                 isActive
-                  ? "text-foreground"
+                  ? "text-primary font-medium"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               <item.icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
-              <span className={cn(isActive && "font-medium")}>{item.label}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}

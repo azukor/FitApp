@@ -15,10 +15,10 @@ function Dialog({ open, onOpenChange, children }: DialogProps) {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
       <div className="fixed inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div
-          className="relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-xl shadow-lg max-h-[85vh] overflow-y-auto"
+          className="relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-[var(--radius-card)] shadow-lg max-h-[85vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {children}
@@ -48,7 +48,7 @@ function DialogClose({ onClose }: { onClose: () => void }) {
   return (
     <button
       onClick={onClose}
-      className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
+      className="absolute right-4 top-4 rounded-full p-1 opacity-70 ring-offset-background transition-opacity hover:opacity-100 hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
     >
       <X className="h-4 w-4" />
     </button>

@@ -2,7 +2,9 @@
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/components/providers/theme-provider";
 import {
   User,
   Database,
@@ -10,13 +12,51 @@ import {
   Bike,
   Sparkles,
   ExternalLink,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
+
+  const themeOptions = [
+    { value: "light" as const, icon: Sun, label: "Light" },
+    { value: "dark" as const, icon: Moon, label: "Dark" },
+    { value: "system" as const, icon: Monitor, label: "System" },
+  ];
+
   return (
     <div className="space-y-4">
       <PageHeader title="Settings" description="App configuration" />
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sun className="h-4 w-4" />
+            Appearance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {themeOptions.map((opt) => (
+              <Button
+                key={opt.value}
+                variant={theme === opt.value ? "default" : "outline"}
+                size="sm"
+                className={cn("flex-1 gap-2", theme === opt.value && "pointer-events-none")}
+                onClick={() => setTheme(opt.value)}
+              >
+                <opt.icon className="h-4 w-4" />
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* User */}
       <Card>
