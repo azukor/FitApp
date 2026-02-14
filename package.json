@@ -17,6 +17,7 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@garmin/fitsdk": "^21.194.0",
     "@prisma/client": "^5.22.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
