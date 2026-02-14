@@ -264,17 +264,25 @@ export interface CoachChatResponse {
 }
 
 export async function coachChat(
-  messages: { role: "user" | "assistant"; content: string }[]
+  messages: { role: "user" | "assistant"; content: string; image?: string }[]
 ): Promise<CoachChatResponse> {
   const openai = getOpenAI();
   const systemPrompt = await buildSystemPrompt();
 
   const openaiMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
-    ...messages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
+    ...messages.map((m): ChatCompletionMessageParam => {
+      if (m.role === "user" && m.image) {
+        return {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: m.image, detail: "auto" } },
+            { type: "text", text: m.content },
+          ],
+        };
+      }
+      return { role: m.role, content: m.content };
+    }),
   ];
 
   let allCreatedItems: CoachCreatedItem[] = [];

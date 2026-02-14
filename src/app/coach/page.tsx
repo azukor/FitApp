@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Send, Loader2, Sparkles, Dumbbell, BookOpen } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  Sparkles,
+  Dumbbell,
+  BookOpen,
+  ImagePlus,
+  X,
+} from "lucide-react";
 import type { CoachMessage } from "@/types";
 
 const STARTER_SUGGESTIONS = [
@@ -15,25 +23,70 @@ const STARTER_SUGGESTIONS = [
   "Create a beginner-friendly upper/lower split",
 ];
 
+const MAX_IMAGE_DIMENSION = 1024;
+
+/** Resize an image file to fit within MAX_IMAGE_DIMENSION and return a base64 data URL. */
+function resizeImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+        const scale = MAX_IMAGE_DIMENSION / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export default function CoachPage() {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [input, setInput] = useState("");
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading]);
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || isLoading) return;
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImage(file);
+      setPendingImage(dataUrl);
+    } catch {
+      setError("Failed to process image");
+    }
+    // Reset so the same file can be re-selected
+    e.target.value = "";
+  }, []);
 
-    const userMessage: CoachMessage = { role: "user", content: text.trim() };
+  async function sendMessage(text: string, image?: string | null) {
+    if ((!text.trim() && !image) || isLoading) return;
+
+    const userMessage: CoachMessage = {
+      role: "user",
+      content: text.trim() || (image ? "What do you see in this image?" : ""),
+      image: image || undefined,
+    };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
+    setPendingImage(null);
     setError(null);
     setIsLoading(true);
 
@@ -42,7 +95,11 @@ export default function CoachPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: updatedMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+            ...(m.image ? { image: m.image } : {}),
+          })),
         }),
       });
 
@@ -68,7 +125,7 @@ export default function CoachPage() {
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(input);
+      sendMessage(input, pendingImage);
     }
   }
 
@@ -113,6 +170,15 @@ export default function CoachPage() {
                   : "bg-muted"
               }`}
             >
+              {/* Show attached image */}
+              {msg.image && (
+                <img
+                  src={msg.image}
+                  alt="Attached"
+                  className="rounded-lg mb-2 max-h-48 object-contain"
+                />
+              )}
+
               {msg.content}
 
               {/* Show created items */}
@@ -154,9 +220,46 @@ export default function CoachPage() {
         )}
       </div>
 
+      {/* Image preview */}
+      {pendingImage && (
+        <div className="border-t px-1 pt-2">
+          <div className="relative inline-block">
+            <img
+              src={pendingImage}
+              alt="To attach"
+              className="h-20 rounded-lg object-cover"
+            />
+            <button
+              onClick={() => setPendingImage(null)}
+              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input area */}
       <div className="border-t pt-3 pb-1">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
         <div className="flex gap-2 items-end">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            className="shrink-0 h-[44px] w-[44px]"
+            title="Attach image or take photo"
+          >
+            <ImagePlus className="h-5 w-5" />
+          </Button>
           <Textarea
             ref={textareaRef}
             value={input}
@@ -169,8 +272,8 @@ export default function CoachPage() {
           />
           <Button
             size="icon"
-            onClick={() => sendMessage(input)}
-            disabled={!input.trim() || isLoading}
+            onClick={() => sendMessage(input, pendingImage)}
+            disabled={(!input.trim() && !pendingImage) || isLoading}
             className="shrink-0 h-[44px] w-[44px]"
           >
             <Send className="h-4 w-4" />

@@ -109,6 +109,7 @@ export interface LastTimeData {
 export interface CoachMessage {
   role: "user" | "assistant";
   content: string;
+  image?: string; // base64 data URL for user-attached images
   createdItems?: CoachCreatedItem[];
 }
 
