@@ -104,3 +104,16 @@ export interface LastTimeData {
   }[];
   note?: string;
 }
+
+// Coach chat
+export interface CoachMessage {
+  role: "user" | "assistant";
+  content: string;
+  createdItems?: CoachCreatedItem[];
+}
+
+export interface CoachCreatedItem {
+  type: "exercise" | "template";
+  name: string;
+  id: string;
+}

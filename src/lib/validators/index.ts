@@ -63,3 +63,10 @@ export const finishSessionSchema = z.object({
     note: z.string().min(1),
   })).optional(),
 });
+
+export const coachChatSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().min(1),
+  })).min(1),
+});

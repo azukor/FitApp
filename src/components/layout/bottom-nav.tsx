@@ -8,7 +8,7 @@ import {
   Dumbbell,
   Bike,
   BarChart3,
-  Settings,
+  Sparkles,
   BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,9 +17,9 @@ const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Home" },
   { href: "/calendar", icon: Calendar, label: "Calendar" },
   { href: "/templates", icon: BookOpen, label: "Templates" },
+  { href: "/coach", icon: Sparkles, label: "Coach" },
   { href: "/rides", icon: Bike, label: "Rides" },
   { href: "/insights", icon: BarChart3, label: "Insights" },
-  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export function BottomNav() {
