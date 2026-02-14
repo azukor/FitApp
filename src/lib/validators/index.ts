@@ -68,6 +68,6 @@ export const coachChatSchema = z.object({
   messages: z.array(z.object({
     role: z.enum(["user", "assistant"]),
     content: z.string().min(1),
-    image: z.string().optional(),
+    images: z.array(z.string()).optional(),
   })).min(1),
 });

@@ -51,7 +51,7 @@ function resizeImage(file: File): Promise<string> {
 export default function CoachPage() {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [input, setInput] = useState("");
-  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -63,30 +63,31 @@ export default function CoachPage() {
   }, [messages, isLoading]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     try {
-      const dataUrl = await resizeImage(file);
-      setPendingImage(dataUrl);
+      const resized = await Promise.all(Array.from(files).map(resizeImage));
+      setPendingImages((prev) => [...prev, ...resized]);
     } catch {
-      setError("Failed to process image");
+      setError("Failed to process image(s)");
     }
-    // Reset so the same file can be re-selected
+    // Reset so the same files can be re-selected
     e.target.value = "";
   }, []);
 
-  async function sendMessage(text: string, image?: string | null) {
-    if ((!text.trim() && !image) || isLoading) return;
+  async function sendMessage(text: string, images?: string[]) {
+    if ((!text.trim() && (!images || images.length === 0)) || isLoading) return;
 
+    const hasImages = images && images.length > 0;
     const userMessage: CoachMessage = {
       role: "user",
-      content: text.trim() || (image ? "What do you see in this image?" : ""),
-      image: image || undefined,
+      content: text.trim() || (hasImages ? "What do you see in these images?" : ""),
+      images: hasImages ? images : undefined,
     };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
-    setPendingImage(null);
+    setPendingImages([]);
     setError(null);
     setIsLoading(true);
 
@@ -98,7 +99,7 @@ export default function CoachPage() {
           messages: updatedMessages.map((m) => ({
             role: m.role,
             content: m.content,
-            ...(m.image ? { image: m.image } : {}),
+            ...(m.images && m.images.length > 0 ? { images: m.images } : {}),
           })),
         }),
       });
@@ -125,7 +126,7 @@ export default function CoachPage() {
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(input, pendingImage);
+      sendMessage(input, pendingImages.length > 0 ? pendingImages : undefined);
     }
   }
 
@@ -170,13 +171,18 @@ export default function CoachPage() {
                   : "bg-muted"
               }`}
             >
-              {/* Show attached image */}
-              {msg.image && (
-                <img
-                  src={msg.image}
-                  alt="Attached"
-                  className="rounded-lg mb-2 max-h-48 object-contain"
-                />
+              {/* Show attached images */}
+              {msg.images && msg.images.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {msg.images.map((src, k) => (
+                    <img
+                      key={k}
+                      src={src}
+                      alt="Attached"
+                      className="rounded-lg max-h-48 object-contain"
+                    />
+                  ))}
+                </div>
               )}
 
               {msg.content}
@@ -220,22 +226,24 @@ export default function CoachPage() {
         )}
       </div>
 
-      {/* Image preview */}
-      {pendingImage && (
-        <div className="border-t px-1 pt-2">
-          <div className="relative inline-block">
-            <img
-              src={pendingImage}
-              alt="To attach"
-              className="h-20 rounded-lg object-cover"
-            />
-            <button
-              onClick={() => setPendingImage(null)}
-              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+      {/* Image previews */}
+      {pendingImages.length > 0 && (
+        <div className="border-t px-1 pt-2 flex flex-wrap gap-2">
+          {pendingImages.map((src, idx) => (
+            <div key={idx} className="relative inline-block">
+              <img
+                src={src}
+                alt="To attach"
+                className="h-20 rounded-lg object-cover"
+              />
+              <button
+                onClick={() => setPendingImages((prev) => prev.filter((_, i) => i !== idx))}
+                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -245,6 +253,7 @@ export default function CoachPage() {
           ref={fileInputRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
           onChange={handleFileSelect}
         />
@@ -271,8 +280,8 @@ export default function CoachPage() {
           />
           <Button
             size="icon"
-            onClick={() => sendMessage(input, pendingImage)}
-            disabled={(!input.trim() && !pendingImage) || isLoading}
+            onClick={() => sendMessage(input, pendingImages.length > 0 ? pendingImages : undefined)}
+            disabled={(!input.trim() && pendingImages.length === 0) || isLoading}
             className="shrink-0 h-[44px] w-[44px]"
           >
             <Send className="h-4 w-4" />

@@ -264,7 +264,7 @@ export interface CoachChatResponse {
 }
 
 export async function coachChat(
-  messages: { role: "user" | "assistant"; content: string; image?: string }[]
+  messages: { role: "user" | "assistant"; content: string; images?: string[] }[]
 ): Promise<CoachChatResponse> {
   const openai = getOpenAI();
   const systemPrompt = await buildSystemPrompt();
@@ -272,12 +272,15 @@ export async function coachChat(
   const openaiMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
     ...messages.map((m): ChatCompletionMessageParam => {
-      if (m.role === "user" && m.image) {
+      if (m.role === "user" && m.images && m.images.length > 0) {
         return {
           role: "user",
           content: [
-            { type: "image_url", image_url: { url: m.image, detail: "auto" } },
-            { type: "text", text: m.content },
+            ...m.images.map((url) => ({
+              type: "image_url" as const,
+              image_url: { url, detail: "auto" as const },
+            })),
+            { type: "text" as const, text: m.content },
           ],
         };
       }
