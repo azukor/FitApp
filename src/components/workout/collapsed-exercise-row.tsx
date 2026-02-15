@@ -1,7 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { SetChip } from "./set-chip";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SetData {
@@ -29,37 +28,44 @@ export function CollapsedExerciseRow({
 }: CollapsedExerciseRowProps) {
   const loggedCount = sets.filter((s) => s.logged).length;
 
+  if (completed) {
+    // Completed: compact row, checkmark, 50% opacity, no card elevation
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "w-full flex items-center gap-3 px-4 py-3 rounded-[var(--radius-card)] transition-all duration-200",
+          "opacity-50 hover:opacity-70",
+          className
+        )}
+      >
+        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20">
+          <Check className="h-3 w-3 text-primary" />
+        </div>
+        <span className="text-sm font-medium truncate">{name}</span>
+        <span className="text-xs text-muted-foreground ml-auto shrink-0">
+          {loggedCount}/{sets.length}
+        </span>
+      </button>
+    );
+  }
+
+  // Upcoming: neutral surface, 90% opacity, clean row
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full text-left rounded-[var(--radius-card)] border bg-card p-4 transition-colors",
-        completed && "opacity-60",
+        "w-full flex items-center justify-between px-4 py-3.5 rounded-[var(--radius-card)] bg-card border transition-all duration-200",
+        "opacity-90 hover:opacity-100",
         className
       )}
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className={cn("font-semibold text-sm", completed && "line-through")}>
-          {name}
-        </span>
-        <Badge variant={completed ? "success" : "secondary"} className="text-xs">
-          {loggedCount}/{sets.length}
-        </Badge>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {sets.map((set, i) => (
-          <SetChip
-            key={i}
-            index={i}
-            weight={set.weight}
-            reps={set.reps}
-            seconds={set.seconds}
-            failure={set.failure}
-            logged={set.logged}
-          />
-        ))}
-      </div>
+      <span className="text-sm font-medium truncate">{name}</span>
+      <span className="text-xs text-muted-foreground shrink-0">
+        {loggedCount}/{sets.length}
+      </span>
     </button>
   );
 }

@@ -9,7 +9,7 @@ import { ActiveExerciseCard } from "@/components/workout/active-exercise-card";
 import { CollapsedExerciseRow } from "@/components/workout/collapsed-exercise-row";
 import { RestTimerSheet } from "@/components/workout/rest-timer-sheet";
 import { FinishWorkoutModal } from "@/components/workout/finish-workout-modal";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticMedium } from "@/lib/haptics";
 
 interface SetEntry {
   exerciseId: string;
@@ -61,7 +61,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
 
   // Enter workout mode on mount, exit on unmount
   useEffect(() => {
-    enterWorkoutMode();
+    enterWorkoutMode("strength");
     return () => exitWorkoutMode();
   }, [enterWorkoutMode, exitWorkoutMode]);
 
@@ -121,14 +121,15 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
   const logSet = (blockId: string, setIndex: number) => {
     updateSet(blockId, setIndex, { logged: true });
 
-    // Check if all sets for this block are done → auto-advance
+    // Check if all sets for this block are done
     const blockSets = setEntries.get(blockId) || [];
     const updatedSets = [...blockSets];
     updatedSets[setIndex] = { ...updatedSets[setIndex], logged: true };
     const allDone = updatedSets.every((s) => s.logged);
 
     if (allDone) {
-      // Find next incomplete block
+      hapticMedium();
+      // Find next incomplete block and auto-advance
       const currentIdx = blocks.findIndex((b) => b.id === blockId);
       for (let i = currentIdx + 1; i < blocks.length; i++) {
         const nextBlockSets = setEntries.get(blocks[i].id) || [];
@@ -137,7 +138,7 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
           return;
         }
       }
-      // All done, show finish modal
+      // All exercises done
       setShowFinishModal(true);
     }
   };
@@ -201,6 +202,19 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     }
   };
 
+  // Advance to next incomplete exercise (used by rest timer auto-advance)
+  const advanceToNext = () => {
+    if (!expandedBlock) return;
+    const currentIdx = blocks.findIndex((b) => b.id === expandedBlock);
+    for (let i = currentIdx + 1; i < blocks.length; i++) {
+      const nextBlockSets = setEntries.get(blocks[i].id) || [];
+      if (nextBlockSets.some((s) => !s.logged)) {
+        setExpandedBlock(blocks[i].id);
+        return;
+      }
+    }
+  };
+
   const totalLogged = Array.from(setEntries.values()).flat().filter((s) => s.logged).length;
   const totalSets = Array.from(setEntries.values()).flat().length;
 
@@ -212,8 +226,26 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
     );
   }
 
+  // Categorize blocks: completed → current → upcoming
+  const completedBlocks: ExerciseBlock[] = [];
+  const upcomingBlocks: ExerciseBlock[] = [];
+  let currentBlock: ExerciseBlock | null = null;
+
+  for (const block of blocks) {
+    const sets = setEntries.get(block.id) || [];
+    const blockComplete = sets.length > 0 && sets.every((s) => s.logged);
+
+    if (block.id === expandedBlock) {
+      currentBlock = block;
+    } else if (blockComplete) {
+      completedBlocks.push(block);
+    } else {
+      upcomingBlocks.push(block);
+    }
+  }
+
   return (
-    <div className="space-y-3 pb-32">
+    <div className="space-y-2 pb-32">
       <WorkoutHeader
         name={session.template?.name || "Workout"}
         logged={totalLogged}
@@ -221,54 +253,66 @@ export default function WorkoutPage({ params }: { params: Promise<{ id: string }
         onEnd={() => router.push("/")}
       />
 
-      {/* Rest Timer */}
-      {showRestTimer && (
-        <RestTimerSheet onDismiss={() => setShowRestTimer(false)} />
-      )}
-
-      {/* Exercise Blocks */}
-      {blocks.map((block) => {
+      {/* Completed exercises */}
+      {completedBlocks.map((block) => {
         const sets = setEntries.get(block.id) || [];
-        const isExpanded = expandedBlock === block.id;
-        const lastPerf = lastPerfs.get(block.exercise.id);
-        const blockComplete = sets.length > 0 && sets.every((s) => s.logged);
-
-        if (isExpanded) {
-          return (
-            <ActiveExerciseCard
-              key={block.id}
-              blockId={block.id}
-              exerciseName={block.exercise.name}
-              formCues={block.exercise.formCues}
-              mode={block.mode}
-              targetSets={block.sets}
-              repMin={block.repMin}
-              repMax={block.repMax}
-              seconds={block.seconds}
-              workSeconds={block.workSeconds}
-              restSeconds={block.restSeconds}
-              rounds={block.rounds}
-              targetRpe={block.targetRpe}
-              sets={sets}
-              lastPerf={lastPerf}
-              exerciseNote={exerciseNotes.get(block.exercise.id) || ""}
-              onExerciseNoteChange={(note) =>
-                setExerciseNotes((prev) => new Map(prev).set(block.exercise.id, note))
-              }
-              onUpdateSet={(setIndex, updates) => updateSet(block.id, setIndex, updates)}
-              onLogSet={(setIndex) => logSet(block.id, setIndex)}
-              onCopyLastSet={(setIndex) => copyLastSet(block.id, setIndex)}
-              onCollapse={() => setExpandedBlock(null)}
-            />
-          );
-        }
-
         return (
           <CollapsedExerciseRow
             key={block.id}
             name={block.exercise.name}
             sets={sets}
-            completed={blockComplete}
+            completed={true}
+            onClick={() => setExpandedBlock(block.id)}
+          />
+        );
+      })}
+
+      {/* Current exercise (expanded) */}
+      {currentBlock && (
+        <ActiveExerciseCard
+          key={currentBlock.id}
+          blockId={currentBlock.id}
+          exerciseName={currentBlock.exercise.name}
+          formCues={currentBlock.exercise.formCues}
+          mode={currentBlock.mode}
+          targetSets={currentBlock.sets}
+          repMin={currentBlock.repMin}
+          repMax={currentBlock.repMax}
+          seconds={currentBlock.seconds}
+          workSeconds={currentBlock.workSeconds}
+          restSeconds={currentBlock.restSeconds}
+          rounds={currentBlock.rounds}
+          targetRpe={currentBlock.targetRpe}
+          sets={setEntries.get(currentBlock.id) || []}
+          lastPerf={lastPerfs.get(currentBlock.exercise.id)}
+          exerciseNote={exerciseNotes.get(currentBlock.exercise.id) || ""}
+          onExerciseNoteChange={(note) =>
+            setExerciseNotes((prev) => new Map(prev).set(currentBlock!.exercise.id, note))
+          }
+          onUpdateSet={(setIndex, updates) => updateSet(currentBlock!.id, setIndex, updates)}
+          onLogSet={(setIndex) => logSet(currentBlock!.id, setIndex)}
+          onCopyLastSet={(setIndex) => copyLastSet(currentBlock!.id, setIndex)}
+          onCollapse={() => setExpandedBlock(null)}
+        />
+      )}
+
+      {/* Rest Timer (between current and upcoming) */}
+      {showRestTimer && (
+        <RestTimerSheet
+          onDismiss={() => setShowRestTimer(false)}
+          onComplete={advanceToNext}
+        />
+      )}
+
+      {/* Upcoming exercises */}
+      {upcomingBlocks.map((block) => {
+        const sets = setEntries.get(block.id) || [];
+        return (
+          <CollapsedExerciseRow
+            key={block.id}
+            name={block.exercise.name}
+            sets={sets}
+            completed={false}
             onClick={() => setExpandedBlock(block.id)}
           />
         );

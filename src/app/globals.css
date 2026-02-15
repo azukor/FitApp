@@ -4,11 +4,10 @@
    Design System Tokens (Tailwind v4 @theme)
    ─────────────────────────────────────────────── */
 @theme {
-  /* Accent (Performance Blue) */
-  --color-accent-400: #60A5FA;
-  --color-accent-500: #3B82F6;
-  --color-accent-600: #2563EB;
-  --color-accent-700: #1D4ED8;
+  /* Workout type accent palette */
+  --color-accent-strength: #2F6BFF;
+  --color-accent-cardio: #32D74B;
+  --color-accent-mobility: #9B7BFF;
 
   /* State colors */
   --color-success: #22C55E;
@@ -39,23 +38,23 @@
   --color-destructive-foreground: #FFFFFF;
   --color-border: var(--border-color);
   --color-input: var(--border-color);
-  --color-ring: var(--theme-accent);
+  --color-ring: var(--accent);
 }
 
 /* ───────────────────────────────────────────────
    Light Mode (Default)
    ─────────────────────────────────────────────── */
 :root {
-  --bg: #FFFFFF;
-  --surface: #F8FAFC;
+  --bg: #F6F7F9;
+  --surface: #F6F7F9;
   --card-bg: #FFFFFF;
   --border-color: #E5E7EB;
-  --fg: #0F172A;
-  --fg-secondary: #475569;
-  --accent: #2563EB;
-  --theme-accent: #2563EB;
+  --fg: #111827;
+  --fg-secondary: #6B7280;
+  --accent: #2F6BFF;
   --secondary: #F1F5F9;
   --muted: #F1F5F9;
+  --elevated: #FFFFFF;
   color-scheme: light;
 }
 
@@ -69,10 +68,10 @@
   --border-color: #334155;
   --fg: #F8FAFC;
   --fg-secondary: #94A3B8;
-  --accent: #3B82F6;
-  --theme-accent: #3B82F6;
+  --accent: #2F6BFF;
   --secondary: #1E293B;
   --muted: #1E293B;
+  --elevated: #263245;
   color-scheme: dark;
 }
 
@@ -80,16 +79,16 @@
    Workout Mode (dark, high-contrast)
    ─────────────────────────────────────────────── */
 [data-mode="workout"] {
-  --bg: #0B1220;
-  --surface: #0F1B2D;
-  --card-bg: #101F35;
-  --border-color: #1E2A40;
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --card-bg: #1E293B;
+  --border-color: rgba(255, 255, 255, 0.06);
   --fg: #F8FAFC;
-  --fg-secondary: #CBD5E1;
-  --accent: #3B82F6;
-  --theme-accent: #3B82F6;
-  --secondary: #0F1B2D;
-  --muted: #0F1B2D;
+  --fg-secondary: #94A3B8;
+  --accent: var(--workout-accent, #2F6BFF);
+  --secondary: #263245;
+  --muted: #1E293B;
+  --elevated: #263245;
   color-scheme: dark;
 }
 

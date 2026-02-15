@@ -8,9 +8,10 @@ import { hapticHeavy } from "@/lib/haptics";
 interface RestTimerSheetProps {
   initialSeconds?: number;
   onDismiss: () => void;
+  onComplete?: () => void;
 }
 
-export function RestTimerSheet({ initialSeconds = 90, onDismiss }: RestTimerSheetProps) {
+export function RestTimerSheet({ initialSeconds = 90, onDismiss, onComplete }: RestTimerSheetProps) {
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,7 +41,23 @@ export function RestTimerSheet({ initialSeconds = 90, onDismiss }: RestTimerShee
     return clearTimer;
   }, [isRunning, clearTimer]);
 
-  const addTime = (s: number) => setTimeLeft((prev) => prev + s);
+  // Auto-advance when timer reaches zero
+  useEffect(() => {
+    if (timeLeft === 0 && !isRunning) {
+      const timeout = setTimeout(() => {
+        onComplete?.();
+        onDismiss();
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [timeLeft, isRunning, onComplete, onDismiss]);
+
+  const addTime = (s: number) => {
+    setTimeLeft((prev) => prev + s);
+    if (!isRunning && timeLeft === 0) {
+      setIsRunning(true);
+    }
+  };
 
   const formatTime = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -49,16 +66,16 @@ export function RestTimerSheet({ initialSeconds = 90, onDismiss }: RestTimerShee
   };
 
   return (
-    <div className="rounded-[var(--radius-card)] border bg-card p-5 space-y-4">
+    <div className="rounded-[var(--radius-card)] bg-primary/10 border border-primary/20 p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
           REST
         </span>
-        <button onClick={onDismiss} className="text-muted-foreground hover:text-foreground">
+        <button onClick={onDismiss} className="text-muted-foreground hover:text-foreground transition-colors">
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="text-5xl font-bold font-mono tabular-nums text-center">
+      <div className="text-5xl font-bold font-mono tabular-nums text-center text-primary">
         {formatTime(timeLeft)}
       </div>
       <div className="flex items-center justify-center gap-2">
@@ -73,9 +90,7 @@ export function RestTimerSheet({ initialSeconds = 90, onDismiss }: RestTimerShee
         </Button>
       </div>
       {timeLeft === 0 && (
-        <Button className="w-full h-14" onClick={onDismiss}>
-          Continue
-        </Button>
+        <p className="text-xs text-center text-muted-foreground">Auto-advancing...</p>
       )}
     </div>
   );
